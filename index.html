@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Kuis Berdiri: Zero Conditional (+ / −)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #0E1430;
+    --chalk: #F6F7FB;
+    --a: #2E44E0;
+    --b: #F5B921;
+    --ok: #14935F;
+    --no: #D1405A;
+    --ok-text: #0F7F51;
+    --no-text: #B82E47;
+    --surface: #FFFFFF;
+    --surface-text: #0E1430;
+    --muted: #55608A;
+    --line: #D3D8EE;
+    --bg: #0E1430;
+    color-scheme: light;
+    box-sizing: border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  *, *::before, *::after { box-sizing: inherit; }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --surface: #1A2248; --surface-text: #F1F3FF; --muted: #A9B2DD; --line: #323C70;
+      --ok-text: #4BD596; --no-text: #FF8DA1; color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --surface: #1A2248; --surface-text: #F1F3FF; --muted: #A9B2DD; --line: #323C70;
+    --ok-text: #4BD596; --no-text: #FF8DA1; color-scheme: dark;
+  }
+  html { height: 100%; scroll-padding-top: env(safe-area-inset-top, 0px); }
+  body {
+    margin: 0; height: 100%; overflow: hidden;
+    background: var(--bg); color: var(--chalk);
+    font-family: "Bricolage Grotesque", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  }
+  [hidden] { display: none !important; }
+  button, input { font: inherit; }
+  :focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; box-shadow: 0 0 0 6px #fff; }
+
+  /* ---------- stage ---------- */
+  .stage { position: relative; height: 100%; overflow: hidden; isolation: isolate; --wash: 1; --cam-op: .8; }
+  .stage.has-cam { --wash: .55; }
+  #cam { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: none; opacity: var(--cam-op); z-index: 0; }
+  .stage.has-cam #cam { display: block; }
+  .stage.mirror #cam { transform: scaleX(-1); }
+
+  .wash { position: absolute; inset: 0; display: grid; grid-template-columns: 1fr 1fr; z-index: 1; pointer-events: none; }
+  .wash > div { position: relative; overflow: hidden; transition: filter .4s; }
+  .wash .wa { background: var(--a); }
+  .wash .wb { background: var(--b); }
+  .wash > div::before { content: ""; position: absolute; inset: 0; background: inherit; opacity: 1; }
+  .stage.has-cam .wash > div { background: transparent; }
+  .stage.has-cam .wash .wa::before { background: var(--a); opacity: var(--wash); }
+  .stage.has-cam .wash .wb::before { background: var(--b); opacity: var(--wash); }
+  .wash > div::after {
+    content: attr(data-l); position: absolute; bottom: -.14em; font-weight: 800; line-height: 1;
+    font-size: min(68vh, 44vw); opacity: .17; color: #fff;
+  }
+  .wash .wa::after { left: -.03em; }
+  .wash .wb::after { right: -.03em; color: var(--ink); opacity: .14; }
+  .wash::after { content: ""; position: absolute; left: 50%; top: 0; bottom: 0; border-left: 3px dashed rgba(255,255,255,.75); }
+  .stage[data-phase="result"] .wash .dim { filter: saturate(.25) brightness(.65); }
+
+  .ui {
+    position: relative; z-index: 2; height: 100%; display: grid;
+    grid-template-rows: auto minmax(0, 1fr) auto auto; pointer-events: none;
+  }
+
+  /* ---------- top: progress + question ---------- */
+  .top { display: grid; justify-items: center; gap: 10px; padding: clamp(10px, 2vw, 22px) clamp(12px, 3vw, 32px) 0; }
+  .pips { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
+  .pip { width: clamp(14px, 2.2vw, 26px); height: 8px; border-radius: 4px; background: rgba(255,255,255,.6); }
+  .pip.cur { background: #fff; box-shadow: 0 0 0 2px var(--ink); }
+  .pip.ok { background: var(--ok); }
+  .pip.no { background: var(--no); }
+  .pip.none { background: #8A91B5; }
+  .qcard {
+    background: var(--surface); color: var(--surface-text); border-radius: 18px;
+    padding: clamp(12px, 2vw, 26px) clamp(16px, 3vw, 40px); max-width: min(1100px, 94vw);
+    text-align: center; box-shadow: 0 10px 30px rgba(8,12,40,.35); pointer-events: auto;
+  }
+  .qmeta { margin: 0 0 4px; font-size: clamp(.8rem, 1.4vw, 1rem); color: var(--muted); font-weight: 600; }
+  .stem { margin: 0; font-size: clamp(1.35rem, 3.6vw, 3.1rem); line-height: 1.15; font-weight: 750; letter-spacing: -.01em; text-wrap: balance; }
+  .blank { display: inline-block; min-width: 2.6em; padding: 0 .2em; border-bottom: .09em solid var(--a); text-align: center; color: var(--ok-text); }
+
+  /* ---------- choices ---------- */
+  .choices { position: relative; display: grid; grid-template-columns: 1fr 1fr; min-height: 0; }
+  .cell {
+    position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 14px; padding: clamp(10px, 2vw, 28px); cursor: pointer; pointer-events: auto;
+    -webkit-tap-highlight-color: transparent; min-width: 0;
+  }
+  .stage[data-mode="camera"] .cell { cursor: default; }
+  .plate {
+    display: flex; align-items: center; gap: clamp(10px, 1.6vw, 20px);
+    background: var(--surface); color: var(--surface-text); border-radius: 20px;
+    padding: clamp(12px, 1.8vw, 24px) clamp(14px, 2vw, 30px); max-width: 100%;
+    box-shadow: 0 8px 24px rgba(8,12,40,.3); text-align: left; transition: transform .2s, opacity .3s;
+  }
+  .chip { flex: none; width: clamp(40px, 6vw, 76px); aspect-ratio: 1; border-radius: 50%; display: grid; place-items: center; font-weight: 800; font-size: clamp(1.4rem, 3.6vw, 2.8rem); }
+  .chip-a { background: var(--a); color: #fff; }
+  .chip-b { background: var(--b); color: var(--ink); }
+  .opt { font-size: clamp(1.1rem, 2.7vw, 2.3rem); font-weight: 650; line-height: 1.2; text-wrap: balance; overflow-wrap: anywhere; min-width: 0; }
+  .cell.picked .plate { box-shadow: 0 0 0 6px var(--ink), 0 0 0 10px #fff; transform: scale(1.03); }
+  .cell.correct .plate { box-shadow: 0 0 0 8px var(--ok), 0 8px 24px rgba(8,12,40,.3); animation: pop .5s ease-out forwards; }
+  .cell.dim .plate { opacity: .55; }
+  .badge { display: none; background: var(--ok); color: #fff; font-weight: 800; padding: 4px 16px; border-radius: 999px; font-size: clamp(.95rem, 1.8vw, 1.3rem); }
+  .cell.correct .badge { display: inline-block; }
+  @keyframes pop { 0% { transform: scale(.96); } 60% { transform: scale(1.07); } 100% { transform: scale(1.03); } }
+
+  .meterwrap { display: none; align-items: center; gap: 10px; width: min(86%, 440px); }
+  .stage[data-mode="camera"] .meterwrap { display: flex; }
+  .pct { background: var(--surface); color: var(--surface-text); padding: 2px 10px; border-radius: 999px; font-weight: 700; font-size: clamp(.85rem, 1.5vw, 1.15rem); min-width: 3.4em; text-align: center; }
+  .meter { flex: 1; height: 14px; border-radius: 7px; background: rgba(14,20,48,.4); overflow: hidden; }
+  .meter i { display: block; height: 100%; width: 0; background: #fff; transition: width .15s; }
+
+  .timer {
+    position: absolute; left: 50%; top: 50%; z-index: 3; width: clamp(84px, 13vw, 160px); aspect-ratio: 1;
+    border-radius: 50%; padding: 8px; pointer-events: none; opacity: 0;
+    background: conic-gradient(#fff var(--p, 360deg), rgba(255,255,255,.28) 0);
+    transform: translate(-50%, -50%) scale(.8); transition: opacity .2s, transform .2s;
+  }
+  .stage[data-phase="counting"] .timer { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  .timer-in { width: 100%; height: 100%; border-radius: 50%; background: var(--ink); color: #fff; display: grid; place-items: center; font-weight: 800; font-size: clamp(2.2rem, 6vw, 5rem); font-variant-numeric: tabular-nums; }
+
+  /* ---------- result note ---------- */
+  .note {
+    pointer-events: auto; margin: 0 clamp(12px, 3vw, 32px); background: var(--surface); color: var(--surface-text);
+    border-radius: 16px; padding: clamp(12px, 1.8vw, 20px) clamp(16px, 2.6vw, 30px); box-shadow: 0 8px 24px rgba(8,12,40,.3);
+    max-height: 32vh; overflow: auto;
+  }
+  .verdict { margin: 0; font-weight: 800; font-size: clamp(1.1rem, 2.4vw, 1.8rem); }
+  .verdict.ok { color: var(--ok-text); }
+  .verdict.no { color: var(--no-text); }
+  .expl { margin: .3em 0 0; font-size: clamp(1rem, 1.9vw, 1.4rem); line-height: 1.35; }
+  .expl-id { margin: .25em 0 0; color: var(--muted); font-size: clamp(.9rem, 1.6vw, 1.15rem); line-height: 1.35; }
+
+  /* ---------- controls ---------- */
+  .controls { pointer-events: auto; display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; align-items: center; padding: 12px clamp(12px, 3vw, 32px) clamp(12px, 2vw, 20px); }
+  .btn {
+    font-weight: 650; font-size: clamp(.9rem, 1.5vw, 1.1rem); padding: .7em 1.2em; min-height: 44px;
+    border-radius: 12px; border: 2px solid transparent; cursor: pointer; background: var(--surface); color: var(--surface-text);
+  }
+  .btn:hover:not(:disabled) { filter: brightness(.95); }
+  .btn:disabled { opacity: .45; cursor: not-allowed; }
+  .btn.start { background: var(--ink); color: #fff; border-color: #fff; min-width: 12em; }
+  .btn.pa { background: var(--a); color: #fff; }
+  .btn.pb { background: var(--b); color: var(--ink); }
+  .btn.ghost { background: transparent; border-color: var(--line); color: var(--surface-text); }
+  .btn.icon { width: 44px; padding: 0; font-size: 1.3rem; line-height: 1; }
+
+  /* ---------- overlays ---------- */
+  .overlay { position: absolute; inset: 0; z-index: 10; display: grid; place-items: center; padding: 16px; background: rgba(14,20,48,.74); backdrop-filter: blur(6px); }
+  .overlay.cal { background: rgba(14,20,48,.3); backdrop-filter: none; place-items: end center; }
+  .panel {
+    background: var(--surface); color: var(--surface-text); border-radius: 24px; padding: clamp(20px, 4vw, 40px);
+    width: min(640px, 100%); max-height: 100%; overflow: auto; display: grid; gap: 14px; box-shadow: 0 20px 60px rgba(8,12,40,.5);
+  }
+  .panel h2 { margin: 0; font-size: clamp(1.6rem, 4.4vw, 2.6rem); line-height: 1.08; font-weight: 800; letter-spacing: -.01em; }
+  .panel p { margin: 0; line-height: 1.45; font-size: clamp(.98rem, 1.7vw, 1.1rem); }
+  .lr { display: flex; align-items: center; gap: 10px; font-size: 1.6rem; font-weight: 800; }
+  .lr .chip { width: 44px; font-size: 1.4rem; }
+  .formula { border-left: 6px solid var(--a); padding: 4px 0 4px 14px; display: grid; gap: 2px; }
+  .formula .rule { font-weight: 800; font-size: clamp(1.05rem, 2.2vw, 1.4rem); }
+  .formula .ex { color: var(--muted); font-size: clamp(1rem, 2vw, 1.25rem); }
+  .row { display: flex; flex-wrap: wrap; gap: 10px; }
+  .hint { color: var(--muted); }
+  .err { color: var(--no-text); font-weight: 600; }
+  .big { font-size: clamp(2rem, 6vw, 3.6rem); font-weight: 800; line-height: 1; }
+
+  dialog.panel { border: 0; margin: auto; width: min(520px, 92vw); }
+  dialog.panel::backdrop { background: rgba(14,20,48,.7); }
+  dialog .field { display: grid; gap: 4px; }
+  dialog .field label { font-weight: 650; display: flex; justify-content: space-between; gap: 12px; }
+  dialog input[type="range"] { width: 100%; accent-color: var(--a); }
+  dialog .check { display: flex; align-items: center; gap: 10px; font-weight: 650; }
+  dialog .check input { width: 22px; height: 22px; accent-color: var(--a); }
+
+  .toast { position: absolute; z-index: 20; left: 50%; top: 14px; transform: translateX(-50%); background: var(--ink); color: #fff; border: 2px solid #fff; padding: 10px 16px; border-radius: 12px; font-weight: 600; max-width: 90vw; text-align: center; }
+
+  @media (max-width: 560px) {
+    .plate { flex-direction: column; text-align: center; }
+    .controls .btn { flex: 1 1 40%; }
+    .controls .btn.start { flex-basis: 100%; order: -1; }
+    .controls .btn.icon { flex: 0 0 44px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+<div class="stage mirror" id="stage" data-phase="intro" data-mode="">
+  <video id="cam" playsinline muted></video>
+  <div class="wash" aria-hidden="true">
+    <div class="wa" id="washA" data-l="A"></div>
+    <div class="wb" id="washB" data-l="B"></div>
+  </div>
+
+  <div class="ui">
+    <header class="top">
+      <div class="pips" id="pips" aria-hidden="true"></div>
+      <div class="qcard">
+        <p class="qmeta" id="qnum">Soal 1 dari 15</p>
+        <h1 class="stem" id="stem"></h1>
+      </div>
+    </header>
+
+    <main class="choices" id="choices">
+      <div class="cell" id="cellA" role="button" tabindex="0" aria-pressed="false" aria-label="Jawaban A">
+        <div class="plate"><span class="chip chip-a" aria-hidden="true">A</span><span class="opt" id="optA"></span></div>
+        <span class="badge">✓ Benar</span>
+        <div class="meterwrap" aria-hidden="true"><span class="pct" id="pctA">0%</span><div class="meter"><i id="barA"></i></div></div>
+      </div>
+      <div class="cell" id="cellB" role="button" tabindex="0" aria-pressed="false" aria-label="Jawaban B">
+        <div class="plate"><span class="chip chip-b" aria-hidden="true">B</span><span class="opt" id="optB"></span></div>
+        <span class="badge">✓ Benar</span>
+        <div class="meterwrap" aria-hidden="true"><span class="pct" id="pctB">0%</span><div class="meter"><i id="barB"></i></div></div>
+      </div>
+      <div class="timer" id="timer" aria-hidden="true"><div class="timer-in" id="timerNum">10</div></div>
+    </main>
+
+    <section class="note" id="note" aria-live="polite" hidden>
+      <p class="verdict" id="verdict"></p>
+      <p class="expl" id="expl"></p>
+      <p class="expl-id" id="explId"></p>
+    </section>
+
+    <footer class="controls">
+      <button class="btn" id="btnPrev">← Soal Sebelumnya</button>
+      <button class="btn start" id="btnStart" disabled>Mulai Hitung Mundur</button>
+      <button class="btn" id="btnNext">Soal Berikutnya →</button>
+      <button class="btn" id="btnFs">Layar Penuh</button>
+      <button class="btn icon" id="btnSet" aria-label="Pengaturan" title="Pengaturan">⚙</button>
+    </footer>
+  </div>
+
+  <!-- intro -->
+  <div class="overlay" id="intro">
+    <div class="panel" id="stepChoose">
+      <div class="lr" aria-hidden="true"><span>←</span><b class="chip chip-a">A</b><b class="chip chip-b">B</b><span>→</span></div>
+      <h2>Kuis Berdiri: Zero Conditional (+ / −)</h2>
+      <div class="formula">
+        <span class="rule">If + present simple, present simple</span>
+        <span class="ex">(+) If you heat ice, it melts. (−) If you don't heat ice, it doesn't melt.</span>
+      </div>
+      <p>Murid memilih jawaban dengan berdiri di depan layar. Berdiri di sisi kiri untuk A, di sisi kanan untuk B. Kamera membaca sisi mana yang paling banyak ditempati murid saat waktu habis.</p>
+      <div class="row">
+        <button class="btn pa" id="btnCam">Aktifkan Kamera</button>
+        <button class="btn pb" id="btnManual">Main Tanpa Kamera</button>
+      </div>
+      <p class="hint">Tanpa kamera, guru atau murid menyentuh sisi A atau B di layar.</p>
+      <p class="err" id="camErr" role="alert"></p>
+    </div>
+    <div class="panel" id="stepCal" hidden>
+      <h2>Kalibrasi kamera</h2>
+      <p>Kosongkan area di depan kamera. Pastikan semua murid berada di luar bingkai, lalu tekan Mulai Kalibrasi. Kamera akan mengingat latar yang kosong.</p>
+      <p id="calStatus" aria-live="polite" class="hint"></p>
+      <div class="row">
+        <button class="btn pa" id="calStart">Mulai Kalibrasi</button>
+        <button class="btn ghost" id="calBack">Kembali</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- summary -->
+  <div class="overlay" id="summary" hidden>
+    <div class="panel">
+      <h2>Selesai!</h2>
+      <p class="big" id="sumBig">0/15</p>
+      <p id="sumText"></p>
+      <div class="pips" id="sumPips" aria-hidden="true"></div>
+      <div class="row">
+        <button class="btn pa" id="sumRestart">Mulai Ulang</button>
+        <button class="btn ghost" id="sumBack">Kembali ke Soal Terakhir</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" role="status" hidden></div>
+</div>
+
+<!-- settings -->
+<dialog class="panel" id="settings" aria-labelledby="setTitle">
+  <h2 id="setTitle">Pengaturan</h2>
+  <div class="field">
+    <label for="setDur"><span>Durasi hitung mundur</span><output id="outDur">10 detik</output></label>
+    <input type="range" id="setDur" min="5" max="30" step="1">
+  </div>
+  <div class="field cam-only">
+    <label for="setSens"><span>Sensitivitas kamera</span><output id="outSens">50</output></label>
+    <input type="range" id="setSens" min="10" max="90" step="1">
+  </div>
+  <div class="field cam-only">
+    <label for="setCamOp"><span>Kecerahan gambar kamera</span><output id="outCamOp">80%</output></label>
+    <input type="range" id="setCamOp" min="20" max="100" step="5">
+  </div>
+  <label class="check cam-only"><input type="checkbox" id="setMirror"> Cermin kamera (kiri murid = sisi A)</label>
+  <label class="check"><input type="checkbox" id="setSound"> Suara hitung mundur</label>
+  <div class="row">
+    <button class="btn pa cam-only" id="btnRecal">Kalibrasi Ulang</button>
+    <button class="btn ghost" id="btnRestart">Mulai Ulang</button>
+    <button class="btn ghost" id="btnMenu">Menu Awal</button>
+    <button class="btn pb" id="btnCloseSet">Tutup</button>
+  </div>
+</dialog>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ============ Questions ============ */
+  var Q = [
+    { s: "If you heat ice, it ___.", a: "melts", b: "doesn't melt", ans: "a",
+      why: "Positive form: If + present simple, present simple. Heat makes ice melt.",
+      id: "Bentuk positif: If + simple present, simple present. Es meleleh jika dipanaskan." },
+    { s: "If you don't heat ice, it ___.", a: "melts", b: "doesn't melt", ans: "b",
+      why: "Negative if-part, so the result is also negative: doesn't melt.",
+      id: "Jika es tidak dipanaskan, hasilnya juga negatif: tidak meleleh." },
+    { s: "If you don't water a plant, it ___.", a: "don't grow", b: "doesn't grow", ans: "b",
+      why: "'It' is singular, so we use doesn't + base verb.",
+      id: "'It' tunggal, jadi pakai doesn't + kata kerja dasar." },
+    { s: "If plants don't get sunlight, they ___ well.", a: "don't grow", b: "doesn't grow", ans: "a",
+      why: "'They' is plural, so we use don't + base verb.",
+      id: "'They' jamak, jadi pakai don't + kata kerja dasar." },
+    { s: "Which sentence is a NEGATIVE zero conditional?", a: "If you eat, you feel full.", b: "If you don't eat, you get hungry.", ans: "b",
+      why: "The if-part has don't, so the sentence is negative.",
+      id: "Bagian 'if' memakai don't, jadi kalimatnya negatif." },
+    { s: "If it ___ rain, the ground stays dry.", a: "doesn't", b: "don't", ans: "a",
+      why: "'It' needs doesn't. The verb after it stays in the base form: rain.",
+      id: "'It' memakai doesn't. Kata kerja sesudahnya bentuk dasar." },
+    { s: "If you don't sleep, you ___ tired.", a: "will get", b: "get", ans: "b",
+      why: "Zero conditional uses the present simple, even when the if-part is negative.",
+      id: "Zero conditional memakai simple present, walaupun bagian 'if' negatif." },
+    { s: "Which sentence is correct?", a: "If you don't press the button, the light doesn't turn on.", b: "If you don't press the button, the light won't turns on.", ans: "a",
+      why: "Use doesn't + base verb. Do not use 'won't' and do not add -s after it.",
+      id: "Pakai doesn't + kata kerja dasar. Jangan pakai 'won't' dan jangan tambah -s." },
+    { s: "If I ___ breakfast, I feel hungry.", a: "don't eat", b: "doesn't eat", ans: "a",
+      why: "The subject is 'I', so we use don't + base verb.",
+      id: "Subjek 'I' memakai don't + kata kerja dasar." },
+    { s: "If she ___ coffee at night, she can't sleep.", a: "drink", b: "drinks", ans: "b",
+      why: "This if-part is positive. 'She' needs the verb with -s: drinks.",
+      id: "Bagian 'if' ini positif. 'She' memakai kata kerja dengan -s." },
+    { s: "Which sentence is correct?", a: "If you do not heat water, it did not boil.", b: "If you do not heat water, it does not boil.", ans: "b",
+      why: "Zero conditional does not use the past tense. Use does not + base verb.",
+      id: "Zero conditional tidak memakai bentuk lampau. Pakai does not + kata kerja dasar." },
+    { s: "If babies ___ milk, they cry.", a: "don't get", b: "doesn't get", ans: "a",
+      why: "'Babies' is plural, so we use don't + base verb.",
+      id: "'Babies' jamak, jadi pakai don't + kata kerja dasar." },
+    { s: "Which sentence is POSITIVE?", a: "If you mix red and blue, you get purple.", b: "If you don't mix red and blue, you don't get purple.", ans: "a",
+      why: "A positive sentence has no don't or doesn't.",
+      id: "Kalimat positif tidak memakai don't atau doesn't." },
+    { s: "If the bell ___ ring, the students don't go to class.", a: "doesn't", b: "don't", ans: "a",
+      why: "'The bell' is singular, so we use doesn't.",
+      id: "'The bell' tunggal, jadi pakai doesn't." },
+    { s: "If we don't wear a jacket in the cold, we ___.", a: "don't feel cold", b: "feel cold", ans: "b",
+      why: "No jacket in the cold means we feel cold. The result is positive here.",
+      id: "Tanpa jaket saat dingin, kita merasa dingin. Hasilnya positif." }
+  ];
+
+  /* ============ Helpers ============ */
+  var $ = function (id) { return document.getElementById(id); };
+  var wait = function (ms) { return new Promise(function (r) { setTimeout(r, ms); }); };
+  var stage = $("stage"), video = $("cam");
+  var W = 80, H = 45;
+  var proc = document.createElement("canvas"); proc.width = W; proc.height = H;
+  var pctx = proc.getContext("2d", { willReadFrequently: true });
+
+  var DEF = { duration: 10, sens: 50, mirror: true, camOp: 80, sound: true };
+  var cfg = Object.assign({}, DEF);
+  try { var saved = JSON.parse(localStorage.getItem("zcn-cfg") || "null"); if (saved) cfg = Object.assign({}, DEF, saved); } catch (e) {}
+  function saveCfg() { try { localStorage.setItem("zcn-cfg", JSON.stringify(cfg)); } catch (e) {} }
+
+  /* ============ State ============ */
+  var idx = 0, phase = "intro", mode = "";
+  var stream = null, bg = null, calibrating = false, calAcc = null, calN = 0, loopId = null;
+  var results = [], manualPick = null, sa = 0, sb = 0, timerId = null, tEnd = 0, lastSec = -1;
+
+  /* ============ Sound ============ */
+  var ac = null;
+  function beep(freq, dur, type) {
+    if (!cfg.sound) return;
+    try {
+      ac = ac || new (window.AudioContext || window.webkitAudioContext)();
+      var o = ac.createOscillator(), g = ac.createGain();
+      o.type = type || "sine"; o.frequency.value = freq; g.gain.value = 0.08;
+      o.connect(g); g.connect(ac.destination);
+      g.gain.exponentialRampToValueAtTime(0.0001, ac.currentTime + dur);
+      o.start(); o.stop(ac.currentTime + dur);
+    } catch (e) {}
+  }
+
+  /* ============ Toast ============ */
+  var toastT = null;
+  function toast(msg) {
+    var t = $("toast"); t.textContent = msg; t.hidden = false;
+    clearTimeout(toastT); toastT = setTimeout(function () { t.hidden = true; }, 3500);
+  }
+
+  /* ============ Config ============ */
+  function applyCfg() {
+    stage.classList.toggle("mirror", cfg.mirror);
+    stage.style.setProperty("--cam-op", cfg.camOp / 100);
+  }
+
+  /* ============ Rendering ============ */
+  function buildPips(el) {
+    el.innerHTML = "";
+    Q.forEach(function (_, i) {
+      var p = document.createElement("span");
+      var r = results[i];
+      p.className = "pip" + (r === "ok" ? " ok" : r === "no" ? " no" : (r === "none" || r === "tie") ? " none" : "") + (el.id === "pips" && i === idx ? " cur" : "");
+      el.appendChild(p);
+    });
+  }
+
+  function setPhase(p) {
+    phase = p;
+    stage.dataset.phase = p;
+    var b = $("btnStart");
+    b.disabled = (p === "intro");
+    b.textContent = p === "counting" ? "Batalkan" : p === "result" ? "Ulangi Soal" : "Mulai Hitung Mundur";
+  }
+
+  function clearResultUI() {
+    ["cellA", "cellB"].forEach(function (id) {
+      var c = $(id); c.classList.remove("picked", "correct", "dim"); c.setAttribute("aria-pressed", "false");
+    });
+    $("washA").classList.remove("dim"); $("washB").classList.remove("dim");
+    $("note").hidden = true;
+    var bl = $("blank"); if (bl) bl.textContent = "";
+  }
+
+  function renderQ() {
+    var q = Q[idx];
+    $("qnum").textContent = "Soal " + (idx + 1) + " dari " + Q.length;
+    var stem = $("stem"); stem.innerHTML = "";
+    var parts = q.s.split("___");
+    if (parts.length > 1) {
+      stem.appendChild(document.createTextNode(parts[0]));
+      var bl = document.createElement("span"); bl.className = "blank"; bl.id = "blank"; bl.setAttribute("aria-label", "kosong");
+      stem.appendChild(bl);
+      stem.appendChild(document.createTextNode(parts[1]));
+    } else {
+      stem.textContent = q.s;
+    }
+    $("optA").textContent = q.a;
+    $("optB").textContent = q.b;
+    $("cellA").setAttribute("aria-label", "Jawaban A: " + q.a);
+    $("cellB").setAttribute("aria-label", "Jawaban B: " + q.b);
+    manualPick = null;
+    clearResultUI();
+    buildPips($("pips"));
+    $("btnPrev").disabled = idx === 0;
+    $("btnNext").textContent = idx === Q.length - 1 ? "Selesai" : "Soal Berikutnya →";
+    if (mode) setPhase("ready");
+  }
+
+  /* ============ Countdown + result ============ */
+  function startCountdown() {
+    if (mode === "camera" && !bg) { showIntroStep("calibrate"); return; }
+    if (phase === "result") { renderQ(); }
+    results[idx] = undefined;
+    buildPips($("pips"));
+    setPhase("counting");
+    tEnd = performance.now() + cfg.duration * 1000;
+    lastSec = -1;
+    updateTimer();
+    timerId = setInterval(updateTimer, 100);
+  }
+
+  function cancelCountdown() {
+    clearInterval(timerId); timerId = null;
+    if (phase === "counting") setPhase("ready");
+  }
+
+  function updateTimer() {
+    var rem = tEnd - performance.now();
+    var sec = Math.max(0, Math.ceil(rem / 1000));
+    $("timerNum").textContent = sec;
+    $("timer").style.setProperty("--p", (Math.max(0, rem) / (cfg.duration * 1000) * 360) + "deg");
+    if (sec !== lastSec) { lastSec = sec; if (sec > 0 && sec <= 3) beep(520, 0.12, "triangle"); }
+    if (rem <= 0) finishCountdown();
+  }
+
+  function finishCountdown() {
+    clearInterval(timerId); timerId = null;
+    var pick;
+    if (mode === "camera") {
+      var tot = sa + sb;
+      if (tot < 0.02) pick = "none";
+      else if (Math.abs(sa - sb) / Math.max(sa, sb) < 0.12) pick = "tie";
+      else pick = sa > sb ? "a" : "b";
+    } else {
+      pick = manualPick || "none";
+    }
+    reveal(pick);
+  }
+
+  function reveal(pick) {
+    var q = Q[idx], ans = q.ans, A = ans.toUpperCase();
+    var status = (pick === "a" || pick === "b") ? (pick === ans ? "ok" : "no") : pick;
+    results[idx] = status;
+    setPhase("result");
+    $("cell" + A).classList.add("correct");
+    var other = ans === "a" ? "B" : "A";
+    $("cell" + other).classList.add("dim");
+    $("wash" + other).classList.add("dim");
+    var bl = $("blank"); if (bl) bl.textContent = q[ans];
+    var who = mode === "camera" ? "Mayoritas berdiri di " : "Jawaban kelas: ";
+    var v = $("verdict"); v.className = "verdict";
+    if (status === "ok") { v.textContent = who + pick.toUpperCase() + ". Benar!"; v.classList.add("ok"); }
+    else if (status === "no") { v.textContent = who + pick.toUpperCase() + ". Belum tepat. Jawabannya " + A + "."; v.classList.add("no"); }
+    else if (status === "tie") { v.textContent = "Hasilnya seimbang antara A dan B. Jawabannya " + A + "."; }
+    else { v.textContent = (mode === "camera" ? "Belum ada murid yang terdeteksi." : "Belum ada jawaban.") + " Jawabannya " + A + "."; }
+    $("expl").textContent = q.why;
+    $("explId").textContent = q.id;
+    $("note").hidden = false;
+    buildPips($("pips"));
+    if (status === "ok") { beep(660, 0.15); setTimeout(function () { beep(880, 0.3); }, 150); }
+    else if (status === "no") { beep(220, 0.4, "sawtooth"); }
+    else { beep(440, 0.2); }
+  }
+
+  /* ============ Navigation ============ */
+  function go(dir) {
+    cancelCountdown();
+    if (dir > 0 && idx === Q.length - 1) { showSummary(); return; }
+    idx = Math.min(Q.length - 1, Math.max(0, idx + dir));
+    renderQ();
+  }
+
+  function showSummary() {
+    var ok = results.filter(function (r) { return r === "ok"; }).length;
+    $("sumBig").textContent = ok + "/" + Q.length;
+    $("sumText").textContent = "Kelas menjawab benar " + ok + " dari " + Q.length + " soal.";
+    buildPips($("sumPips"));
+    $("summary").hidden = false;
+  }
+
+  function restart() {
+    cancelCountdown();
+    idx = 0; results = []; manualPick = null;
+    $("summary").hidden = true;
+    renderQ();
+  }
+
+  /* ============ Manual mode ============ */
+  function pick(side) {
+    if (mode !== "manual" || (phase !== "ready" && phase !== "counting")) return;
+    manualPick = side;
+    ["a", "b"].forEach(function (s) {
+      var c = $("cell" + s.toUpperCase()); var on = s === side;
+      c.classList.toggle("picked", on); c.setAttribute("aria-pressed", String(on));
+    });
+  }
+
+  /* ============ Camera ============ */
+  async function startCamera() {
+    $("camErr").textContent = "";
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      $("camErr").textContent = "Browser ini tidak mendukung kamera. Pilih Main Tanpa Kamera.";
+      return;
+    }
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false });
+      video.srcObject = stream;
+      await video.play();
+      mode = "camera"; stage.dataset.mode = "camera";
+      stage.classList.add("has-cam");
+      applyCfg();
+      showIntroStep("calibrate");
+      startLoop();
+    } catch (err) {
+      stopCamera();
+      $("camErr").textContent = "Kamera tidak bisa diakses. Izinkan akses kamera di browser, atau buka halaman ini di tab tersendiri. Kamu juga bisa pilih Main Tanpa Kamera.";
+    }
+  }
+
+  function stopCamera() {
+    if (stream) { stream.getTracks().forEach(function (t) { t.stop(); }); }
+    stream = null; video.srcObject = null;
+    clearInterval(loopId); loopId = null;
+  }
+
+  function startLoop() { clearInterval(loopId); loopId = setInterval(analyze, 120); }
+
+  function analyze() {
+    if (!stream || video.readyState < 2) return;
+    pctx.save();
+    if (cfg.mirror) { pctx.translate(W, 0); pctx.scale(-1, 1); }
+    pctx.drawImage(video, 0, 0, W, H);
+    pctx.restore();
+    var d = pctx.getImageData(0, 0, W, H).data;
+
+    if (calibrating && calAcc) {
+      for (var k = 0; k < d.length; k++) calAcc[k] += d[k];
+      calN++;
+      return;
+    }
+    if (!bg) return;
+
+    var thr = 160 - cfg.sens * 1.4;
+    var mid = W / 2, dead = 2, ca = 0, cb = 0;
+    for (var y = 0; y < H; y++) {
+      for (var x = 0; x < W; x++) {
+        if (x >= mid - dead && x < mid + dead) continue;
+        var i = (y * W + x) * 4;
+        var diff = Math.abs(d[i] - bg[i]) + Math.abs(d[i + 1] - bg[i + 1]) + Math.abs(d[i + 2] - bg[i + 2]);
+        if (diff > thr) { if (x < mid) ca++; else cb++; }
+      }
+    }
+    var area = (mid - dead) * H;
+    sa = sa * 0.6 + (ca / area) * 0.4;
+    sb = sb * 0.6 + (cb / area) * 0.4;
+    updateMeters();
+  }
+
+  function updateMeters() {
+    var tot = sa + sb, pa = 0, pb = 0;
+    if (tot >= 0.02) { pa = Math.round(sa / tot * 100); pb = 100 - pa; }
+    $("barA").style.width = pa + "%"; $("barB").style.width = pb + "%";
+    $("pctA").textContent = pa + "%"; $("pctB").textContent = pb + "%";
+  }
+
+  async function runCalibration() {
+    var btn = $("calStart"), st = $("calStatus");
+    btn.disabled = true;
+    for (var n = 3; n > 0; n--) { st.textContent = "Kalibrasi dimulai dalam " + n + "…"; await wait(1000); }
+    st.textContent = "Merekam latar yang kosong…";
+    calAcc = new Float32Array(W * H * 4); calN = 0; calibrating = true;
+    await wait(1600);
+    calibrating = false;
+    if (calN < 3) {
+      st.textContent = "Kamera belum memberi gambar. Coba lagi.";
+      btn.disabled = false; return;
+    }
+    bg = new Float32Array(calAcc.length);
+    for (var i = 0; i < bg.length; i++) bg[i] = calAcc[i] / calN;
+    sa = 0; sb = 0; updateMeters();
+    st.textContent = "Kalibrasi selesai.";
+    btn.disabled = false;
+    closeIntro();
+  }
+
+  /* ============ Intro ============ */
+  function showIntroStep(step) {
+    $("stepChoose").hidden = step !== "choose";
+    $("stepCal").hidden = step !== "calibrate";
+    $("intro").classList.toggle("cal", step === "calibrate");
+    $("calStatus").textContent = "";
+    $("intro").hidden = false;
+  }
+
+  function closeIntro() {
+    $("intro").hidden = true;
+    if (phase === "intro") renderQ();
+  }
+
+  function startManual() {
+    mode = "manual"; stage.dataset.mode = "manual";
+    stage.classList.remove("has-cam");
+    closeIntro();
+  }
+
+  function backToMenu() {
+    cancelCountdown();
+    stopCamera();
+    bg = null; mode = ""; stage.dataset.mode = "";
+    stage.classList.remove("has-cam");
+    setPhase("intro");
+    $("camErr").textContent = "";
+    showIntroStep("choose");
+  }
+
+  /* ============ Fullscreen ============ */
+  function toggleFs() {
+    var el = document.documentElement;
+    if (!document.fullscreenElement) {
+      if (el.requestFullscreen) {
+        el.requestFullscreen().catch(function () { toast("Layar penuh tidak tersedia di sini. Buka halaman ini di tab tersendiri."); });
+      } else { toast("Browser ini tidak mendukung layar penuh."); }
+    } else { document.exitFullscreen(); }
+  }
+  document.addEventListener("fullscreenchange", function () {
+    $("btnFs").textContent = document.fullscreenElement ? "Keluar Layar Penuh" : "Layar Penuh";
+  });
+
+  /* ============ Settings ============ */
+  var dlg = $("settings");
+  function openSettings() {
+    $("setDur").value = cfg.duration; $("outDur").textContent = cfg.duration + " detik";
+    $("setSens").value = cfg.sens; $("outSens").textContent = cfg.sens;
+    $("setCamOp").value = cfg.camOp; $("outCamOp").textContent = cfg.camOp + "%";
+    $("setMirror").checked = cfg.mirror; $("setSound").checked = cfg.sound;
+    document.querySelectorAll(".cam-only").forEach(function (el) { el.hidden = mode !== "camera"; });
+    if (dlg.showModal) dlg.showModal(); else dlg.setAttribute("open", "");
+  }
+  function closeSettings() { if (dlg.close) dlg.close(); else dlg.removeAttribute("open"); }
+
+  $("setDur").addEventListener("input", function (e) { cfg.duration = +e.target.value; $("outDur").textContent = cfg.duration + " detik"; saveCfg(); });
+  $("setSens").addEventListener("input", function (e) { cfg.sens = +e.target.value; $("outSens").textContent = cfg.sens; saveCfg(); });
+  $("setCamOp").addEventListener("input", function (e) { cfg.camOp = +e.target.value; $("outCamOp").textContent = cfg.camOp + "%"; applyCfg(); saveCfg(); });
+  $("setSound").addEventListener("change", function (e) { cfg.sound = e.target.checked; saveCfg(); });
+  $("setMirror").addEventListener("change", function (e) {
+    cfg.mirror = e.target.checked; applyCfg(); saveCfg();
+    if (mode === "camera") { bg = null; toast("Cermin diubah. Kalibrasi ulang diperlukan."); }
+  });
+  dlg.addEventListener("close", function () {
+    if (mode === "camera" && !bg) showIntroStep("calibrate");
+  });
+
+  /* ============ Wiring ============ */
+  $("btnCam").addEventListener("click", startCamera);
+  $("btnManual").addEventListener("click", startManual);
+  $("calStart").addEventListener("click", runCalibration);
+  $("calBack").addEventListener("click", backToMenu);
+  $("btnPrev").addEventListener("click", function () { go(-1); });
+  $("btnNext").addEventListener("click", function () { go(1); });
+  $("btnFs").addEventListener("click", toggleFs);
+  $("btnSet").addEventListener("click", openSettings);
+  $("btnCloseSet").addEventListener("click", closeSettings);
+  $("btnRecal").addEventListener("click", function () { bg = null; closeSettings(); });
+  $("btnRestart").addEventListener("click", function () { closeSettings(); restart(); });
+  $("btnMenu").addEventListener("click", function () { closeSettings(); backToMenu(); });
+  $("sumRestart").addEventListener("click", restart);
+  $("sumBack").addEventListener("click", function () { $("summary").hidden = true; });
+  $("btnStart").addEventListener("click", function () {
+    if (phase === "ready") startCountdown();
+    else if (phase === "counting") cancelCountdown();
+    else if (phase === "result") renderQ();
+  });
+  ["a", "b"].forEach(function (s) {
+    var c = $("cell" + s.toUpperCase());
+    c.addEventListener("click", function () { pick(s); });
+    c.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); pick(s); } });
+  });
+
+  document.addEventListener("keydown", function (e) {
+    if (dlg.open || !$("intro").hidden || !$("summary").hidden) return;
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    if (e.key === "ArrowRight") go(1);
+    else if (e.key === "ArrowLeft") go(-1);
+    else if (e.key === "f" || e.key === "F") toggleFs();
+    else if (e.key === "a" || e.key === "A") pick("a");
+    else if (e.key === "b" || e.key === "B") pick("b");
+    else if (e.key === " " && e.target === document.body) { e.preventDefault(); $("btnStart").click(); }
+  });
+
+  window.addEventListener("beforeunload", stopCamera);
+
+  /* ============ Init ============ */
+  applyCfg();
+  renderQ();
+  setPhase("intro");
+})();
+</script>
+</body>
+</html>
